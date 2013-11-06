@@ -7,6 +7,9 @@ each individual API point entry. Those functions will throw error when
 one or more of required parameters are missing. All result will be delivered
 asynchronously, by executing callback functions passed as arguments to API calls.
 
+Arguments to all API calls can have `ios: {...}` or `android: {...}` sections, values
+specified that way would overwrite general data from adequate platform section.
+
 # Application live cycle
 
 Before any other operation can be performed, Boxcar API must be
@@ -35,22 +38,35 @@ Next we need to declare for what platforms we want build our application:
     cordova platform add ios
 
 Then we need to download plugins required by Boxcar SDK
-    cordova plugin add org.apache.cordova.websql # This plugin is only required for Android applications
     cordova plugin add org.apache.cordova.device
     cordova plugin add https://github.com/boxcar/PushPlugin
+
+On android Storage API used by SDK needs to be enabled manaully in one of config files.
+To do that XML file `platform/android/res/xml/config.xml` must have additional clause
+    <plugin name="Storage" value="org.apache.cordova.Storage" />
+directly in `<widget>` element.
 
 After that we need put our program files together with `Boxcar.js` file in www/ directory.
 We also need to include `Boxcar.js` and `PushNotification.js` file in our `index.html` file.
     <script type="text/javascript" charset="utf-8" src="PushNotification.js"></script>
     <script type="text/javascript" charset="utf-8" src="Boxcar.js"></script>
 
-This will let us generate packages for our target system with:
-    cordova build android
-    cordova build ios
+Packages for iOS platform can be only build with Xcode IDE, executing
+    cordova prepare ios
 
-and deploy those applications on configured devices using:
-    cordova serve android
-    cordova serve ios
+will fill `platform/ios` directory which can be opened in Xcode.
+
+Developing for Android can also be done using IDE environment, first by preparing build directory:
+     cordova prepare android
+
+and then creating IDE project from `platfrom/android` directory, but this can also be performed from
+CLI by executing
+    cordova build android
+
+to build APK file, and calling
+    cordova run android
+
+to install and start application on Android device.
 
 # API calls
 
@@ -63,8 +79,8 @@ Arguments:
 * `clientKey` (required) - Key used to access service,
 * `secret` - (required) - Secret value needed to access service
 * `server` - (required) - Url of push bridge server
-* `androidSenderID` - (android only) - Google project id used to register for push notification
-* `richUrlBase` - Url of server where html content of received pushes are available
+* `androidSenderID` - (required, android only) - Google project id used to register for push notification
+* `richUrlBase` - (required) - Url of server where html content of received pushes are available
 
 ## `Boxcar.registerDevice()`
 

@@ -7,11 +7,11 @@ var Boxcar = {
      * @param data.server
      */
     init: function(data) {
-        this._verifyArgs(data, {clientKey: 0, secret: 0, server: 0},
-                         {
-                             androidSenderID: "856665945963",
-                             richUrlBase: "http://bbc-testing.process-one.net"
-                         });
+        var verifyTo = {clientKey: 0, secret: 0, server: 0, richUrlBase:0};
+        if (device.platform == 'android' || device.platform == 'Android')
+            verifyTo.androidSenderID = 0;
+
+        this._verifyArgs(data, verifyTo);
 
         this.server = data.server;
         this.clientKey = data.clientKey;
@@ -99,13 +99,16 @@ var Boxcar = {
                 var len = results.rows.length;
                 var res = [];
                 for (var i = 0; i < len; i++) {
+                    var rp = results.rows.item(i).richPush;
+                    if (rp == "false")
+                        rp = false;
                     res.push({
                                  id: results.rows.item(i).id,
                                  time: results.rows.item(i).time,
                                  body: results.rows.item(i).body,
                                  badge: results.rows.item(i).badge,
                                  sound: results.rows.item(i).sound,
-                                 richPush: results.rows.item(i).richPush,
+                                 richPush: rp,
                                  url: results.rows.item(i).url
                              })
                 }
@@ -153,7 +156,7 @@ var Boxcar = {
         if (!this.regid)
             data.onerror({error: "Device not registered in push service"});
 
-        this._sendRequest("GET", "/api/receive/"+this.regid,
+        this._sendRequest("POST", "/api/receive/"+this.regid,
                           {id: data.id},
                           data.onsuccess,
                           data.onerror);
@@ -162,6 +165,14 @@ var Boxcar = {
     _verifyArgs: function(args, names, defaults) {
         if (!args)
             throw new Error("Invalid Argument");
+
+        if (device.platform == 'android' || device.platform == 'Android')
+            for (var i in args.android || {})
+                args[i] = args.android[i];
+        else
+            for (var i in args.ios || {})
+                args[i] = args.ios[i];
+
         for (var i in names)
             if (!(i in args))
                 throw new Error("Invalid Argument - "+i);
@@ -202,11 +213,20 @@ var Boxcar = {
         if (!expires)
             expires = 5*60*1000;
 
-        expires += Date.now();
+        var empty = true;
+        for (var i in data)
+            empty = false;
 
-        data.expires = expires;
+        var dataStr;
 
-        dataStr = JSON.stringify(data);
+        if (empty) {
+            dataStr = "";
+        } else {
+             expires += Date.now();
+             data.expires = expires;
+
+             dataStr = JSON.stringify(data);
+        }
 
         var signData = method+"\n"+
             this.server.replace(/^(?:\w+:\/\/)?([^:]*?)(?::\d+)?(?:\/.*)?$/, "$1").toLowerCase()+"\n"+
@@ -237,7 +257,7 @@ var Boxcar = {
         this.db.transaction(function(tx) {
             tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                           [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url, 0]);
-        }, function() {_this.onalert(msg)}, function() {});
+        }, Boxcar._PNRegError, function() {_this.onalert(msg)});
     },
 
     crypto: {
@@ -399,4 +419,5 @@ var Boxcar = {
     }
 }
 
-module.exports = Boxcar;
+if (typeof(module) != "undefined")
+    module.exports = Boxcar;
