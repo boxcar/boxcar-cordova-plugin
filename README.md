@@ -96,11 +96,15 @@ in push service
 it receives single String value is error description
 * `onalert` (required) - Callback function called when new push message was received, it receive object
 with properties initialized from notificaiton content
+* `onnotificationclick` (required) - Callback function called when user clicked on notification ui
+generated from push. This event can be dispatched only for pushes received when app was in background,
+as for pushes received when app was active notification is not displayed. This function is called with
+single object argument with properties initialized from notificaiton content
 * `tags` - List of strings with tags used to filter which notifications should be delivered
 * `udid` - Unique identifier of device where application is run
 * `alias` - Friendly name of device where application is run
 
-Object passed to `onalert` callback has those fields:
+Objects passed to `onalert` and `onnotificationclick` callbacks have those fields:
 
 * `id` - unique identifier of push notification
 * `time` - time in miliseconds since epoch of when this message was received, this value can be
@@ -110,6 +114,7 @@ converted to Date object by calling `new Date(msg.time)`
 * `body` - body of push notification
 * `richPush` - boolean value telling if this push includes html formated content
 * `url` - url to html content include in this push
+* `seen` - boolean value telling if `markAsReceived` was used for this push notification id
 
 ## `Boxcar.unregisterDevice()`
 
@@ -132,7 +137,8 @@ one argument, list of strings with all tags assigned on server
 
 ## `Boxcar.markAsReceived()`
 
-Inform push service that push message was seen by user
+Inform push service that push message was seen by user. This also makes message info returned
+for further `Boxcar.getReceivedMessages()` to have `seen` attribute set to true
 
 Arguments:
 
