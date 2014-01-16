@@ -109,7 +109,8 @@ var Boxcar = {
                                  badge: results.rows.item(i).badge,
                                  sound: results.rows.item(i).sound,
                                  richPush: rp,
-                                 url: results.rows.item(i).url
+                                 url: results.rows.item(i).url,
+                                 seen: results.rows.item(i).flags == 1
                              })
                 }
                 data.onsuccess(res);
@@ -159,6 +160,10 @@ var Boxcar = {
 
         if (!this.regid)
             data.onerror({error: "Device not registered in push service"});
+
+        this.db.transaction(function(tx) {
+            tx.executeSql("UPDATE pushes SET flags = 1 WHERE id = ?", [data.id]);
+        }, function() {}, onerror);
 
         this._sendRequest("POST", "/api/receive/"+this.regid,
                           {id: data.id},
@@ -258,6 +263,7 @@ var Boxcar = {
 
     _gotMessage: function(msg) {
         var _this = this;
+        msg.seen = false;
         this.db.transaction(function(tx) {
             tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                           [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url, 0]);
