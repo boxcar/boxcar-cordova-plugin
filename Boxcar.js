@@ -47,10 +47,15 @@ var Boxcar = {
     },
 
     registerDevice: function(data) {
-        this._verifyArgs(data, {mode: 0, onsuccess: 0, onerror: 0, onalert: 0});
+        var verifyArgs = {mode: 0, onsuccess: 0, onerror: 0};
+        if (!data.onalert && !data.onnotificationclick)
+            verifyArgs.onalert = 0;
+
+        this._verifyArgs(data, verifyArgs);
 
         this._rdData = data;
         this.onalert = data.onalert;
+        this.onnotificationclick = data.onnotificationclick;
 
         if (device.platform == 'android' || device.platform == 'Android')
             window.plugins.pushNotification.register(this._PNRegSuccess, this._PNRegError,
@@ -261,13 +266,21 @@ var Boxcar = {
         req.send(dataStr);
     },
 
-    _gotMessage: function(msg) {
+    _gotMessage: function(msg, fromNotificationClick) {
         var _this = this;
         msg.seen = false;
         this.db.transaction(function(tx) {
             tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                           [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url, 0]);
-        }, Boxcar._PNRegError, function() {_this.onalert(msg)});
+        }, function() {
+            if (fromNotificationClick && _this.onnotificationclick)
+                _this.onnotificationclick(msg);
+        }, function() {
+            if (_this.onalert)
+                _this.onalert(msg)
+            if (fromNotificationClick && _this.onnotificationclick)
+                _this.onnotificationclick(msg);
+        });
     },
 
     crypto: {
@@ -401,7 +414,7 @@ var Boxcar = {
                          this.richUrlBase+"/push-"+data.payload["i"]+".html" :
                          data.payload["u"]
                 }
-                Boxcar._gotMessage(msg);
+                Boxcar._gotMessage(msg, data.notificationclick);
                 break;
         }
     },
@@ -425,7 +438,7 @@ var Boxcar = {
             window.plugins.pushNotification.setApplicationIconBadgeNumber(function(){}, function(){}, msg.badge);
         }catch(ex){console.info("EX ", ex)}
 
-        Boxcar._gotMessage(msg);
+        Boxcar._gotMessage(msg, !data.foreground);
     }
 }
 
