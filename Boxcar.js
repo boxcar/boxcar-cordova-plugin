@@ -128,7 +128,11 @@ var Boxcar = {
                           {},
                           function(recv) {
                               try {
-                                  Boxcar._tags = JSON.parse(recv).ok
+				  if (recv == "")
+				      Boxcar._tags = [];
+				  else
+				      Boxcar._tags = JSON.parse(recv).ok;
+
                                   data.onsuccess(Boxcar._tags);
                               } catch (ex) {
                                   data.onerror({error: "Can't parse response"});
