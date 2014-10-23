@@ -28,20 +28,35 @@ var Boxcar = {
 
         try {
             this.db = window.openDatabase("Boxcar", "", "Boxcar db", 1000000);
-            if (this.db.version == "1.0" || !this.db.version)
-                this.db.changeVersion(this.db.version, "1.1", function(tx) {
-                    tx.executeSql("CREATE TABLE IF NOT EXISTS pushes ("+
-                                  "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"+
-                                  "time INTEGER NOT NULL,"+
-                                  "body STRING NOT NULL,"+
-                                  "badge STRING NOT NULL,"+
-                                  "sound STRING NOT NULL,"+
-                                  "richPush INTEGER NOT NULL," +
-                                  "url STRING," +
-                                  "flags INTEGER NOT NULL" +
-                                  ");");
+            if (this.db.version == "1.0" || !this.db.version) {
+                this.db.changeVersion(this.db.version, "1.2", function (tx) {
+                    tx.executeSql("CREATE TABLE IF NOT EXISTS pushes (" +
+                                      "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," +
+                                      "time INTEGER NOT NULL," +
+                                      "body STRING NOT NULL," +
+                                      "badge STRING NOT NULL," +
+                                      "sound STRING NOT NULL," +
+                                      "richPush INTEGER NOT NULL," +
+                                      "url STRING," +
+                                      "flags INTEGER NOT NULL," +
+                                      "extras STRING"+
+                                      ");");
                     tx.executeSql("CREATE INDEX pushes_on_time ON pushes (time);");
-                }, function(a){console.info(a)}, function(a){console.info(a)});
+                }, function (a) {
+                    console.info(a)
+                }, function (a) {
+                    console.info(a)
+                });
+            } else if (this.db.version == "1.1") {
+                this.db.changeVersion(this.db.version, "1.2", function (tx) {
+                    tx.executeSql("ALTER TABLE pushes ADD COLUMN extras STRING;");
+                }, function (a) {
+                    console.info(a)
+                }, function (a) {
+                    console.info(a)
+                });
+
+            }
         } catch (ex) {
         }
     },
@@ -87,7 +102,7 @@ var Boxcar = {
         this._verifyArgs(data, {onsuccess: 0, onerror: 0});
 
         this.db.transaction(function(tx) {
-            var sql = "SELECT id, time, body, badge, sound, richPush, url, flags FROM pushes";
+            var sql = "SELECT id, time, body, badge, sound, richPush, url, flags, extras FROM pushes";
             var args = [];
             if (data.before) {
                 sql += " WHERE time < ?";
@@ -115,7 +130,8 @@ var Boxcar = {
                                  sound: results.rows.item(i).sound,
                                  richPush: rp,
                                  url: results.rows.item(i).url,
-                                 seen: results.rows.item(i).flags == 1
+                                 seen: results.rows.item(i).flags == 1,
+                                 extras : results.rows.item(i).extras ? JSON.parse(results.rows.item(i).extras) : {}
                              })
                 }
                 data.onsuccess(res);
@@ -270,8 +286,8 @@ var Boxcar = {
         var _this = this;
         msg.seen = false;
         this.db.transaction(function(tx) {
-            tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                          [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url, 0]);
+            tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags, extras) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                          [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url, 0, msg.extras ? JSON.stringify(msg.extras) : null]);
         }, function() {
             if (fromNotificationClick && _this.onnotificationclick)
                 _this.onnotificationclick(msg);
@@ -398,11 +414,28 @@ var Boxcar = {
 
     GCM_Listener: function(data) {
         console.log("GCM_Listener",data);
+
+        var known_fields =  {
+            "aps-sound": 1,
+            "aps-badge": 1,
+            "aps-alert": 1,
+            "i": 1,
+            "f": 1,
+            "u": 1,
+            "foreground": 1,
+            "priority": 1
+        };
+
         switch (data.event) {
             case "registered":
                 Boxcar._PNRegDone(data.regid);
                 break;
             case "message":
+                var extras = {};
+                for (var p in data.payload) {
+                    if (!(p in known_fields))
+                        extras[p] = data.payload[p];
+                }
                 var msg = {
                     id: data.payload["i"],
                     time: Date.now(),
@@ -412,8 +445,9 @@ var Boxcar = {
                     richPush: data.payload["f"] == "1",
                     url: data.payload["f"] == "1" ?
                          this.richUrlBase+"/push-"+data.payload["i"]+".html" :
-                         data.payload["u"]
-                }
+                         data.payload["u"],
+                    extras : extras
+                };
                 Boxcar._gotMessage(msg, data.notificationclick);
                 break;
         }
@@ -421,26 +455,42 @@ var Boxcar = {
 
     APN_Listener: function(data) {
         console.log("APN_Listener",data);
-        try{
-        var msg = {
-            id: data.i,
-            time: Date.now(),
-            sound: data.sound,
-            badge: parseInt(data.badge) || 0,
-            body: data.alert,
-            richPush: data.f == "1",
-            url: data.f == "1" ?
-                 Boxcar.richUrlBase+"/push-"+data.i+".html" :
-                 data.u
+        var known_fields =  {
+            "sound": 1,
+            "badge": 1,
+            "alert": 1,
+            "i": 1,
+            "f": 1,
+            "u": 1,
+            "foreground": 1,
+            "priority": 1
         };
+        try{
+            var extras = {};
+            for (var p in data) {
+                if (!(p in known_fields))
+                    extras[p] = data[p];
+            }
+            var msg = {
+                id: data.i,
+                time: Date.now(),
+                sound: data.sound,
+                badge: parseInt(data.badge) || 0,
+                body: data.alert,
+                richPush: data.f == "1",
+                url: data.f == "1" ?
+                     Boxcar.richUrlBase+"/push-"+data.i+".html" :
+                     data.u,
+                extras: extras
+            };
 
-        if (msg.badge)
-            window.plugins.pushNotification.setApplicationIconBadgeNumber(function(){}, function(){}, msg.badge);
+            if (msg.badge)
+                window.plugins.pushNotification.setApplicationIconBadgeNumber(function(){}, function(){}, msg.badge);
         }catch(ex){console.info("EX ", ex)}
 
         Boxcar._gotMessage(msg, !data.foreground);
     }
-}
+};
 
 if (typeof(module) != "undefined")
     module.exports = Boxcar;

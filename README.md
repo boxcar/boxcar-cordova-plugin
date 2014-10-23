@@ -115,6 +115,7 @@ converted to Date object by calling `new Date(msg.time)`
 * `richPush` - boolean value telling if this push includes html formated content
 * `url` - url to html content include in this push
 * `seen` - boolean value telling if `markAsReceived` was used for this push notification id
+* `extras` - object containing values defined as "Extra Variables" in push console
 
 ## `Boxcar.unregisterDevice()`
 
