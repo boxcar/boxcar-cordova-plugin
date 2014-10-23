@@ -13,11 +13,11 @@ var Boxcar = {
 
         this._verifyArgs(data, verifyTo);
 
-        this.server = data.server;
+        this.server = data.server.replace(/\/$/, "");
         this.clientKey = data.clientKey;
         this.secret = data.secret;
         this.androidSenderID = data.androidSenderID;
-        this.richUrlBase = data.richUrlBase;
+        this.richUrlBase = data.richUrlBase.replace(/\/$/, "");;
 
         this.initDb();
     },
