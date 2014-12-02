@@ -229,7 +229,7 @@ var Boxcar = {
         if (this._rdData.tags)
             fields.tags = this._rdData.tags;
         if (this._rdData.udid)
-            fields.tags = this._rdData.udid;
+            fields.udid = this._rdData.udid;
         if (this._rdData.alias)
             fields.alias = this._rdData.alias;
 
