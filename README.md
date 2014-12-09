@@ -103,6 +103,7 @@ single object argument with properties initialized from notificaiton content
 * `tags` - List of strings with tags used to filter which notifications should be delivered
 * `udid` - Unique identifier of device where application is run
 * `alias` - Friendly name of device where application is run
+* `appVersion` - String with version of your application
 
 Objects passed to `onalert` and `onnotificationclick` callbacks have those fields:
 

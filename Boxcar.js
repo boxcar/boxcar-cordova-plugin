@@ -232,6 +232,11 @@ var Boxcar = {
             fields.udid = this._rdData.udid;
         if (this._rdData.alias)
             fields.alias = this._rdData.alias;
+        if (this._rdData.appVersion)
+            fields.app_version = this._rdData.appVersion;
+
+        fields.os_version = device.version;
+        fields.name = device.model;
 
         this._sendRequest("PUT", "/api/device_tokens/"+regid,
                           fields,
