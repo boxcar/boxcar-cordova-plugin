@@ -17,7 +17,7 @@ var Boxcar = {
         this.clientKey = data.clientKey;
         this.secret = data.secret;
         this.androidSenderID = data.androidSenderID;
-        this.richUrlBase = data.richUrlBase.replace(/\/$/, "");;
+        this.richUrlBase = data.richUrlBase.replace(/\/$/, "");
 
         this.initDb();
     },
