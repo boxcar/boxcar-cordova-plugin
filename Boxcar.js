@@ -297,10 +297,18 @@ var Boxcar = {
             if (fromNotificationClick && _this.onnotificationclick)
                 _this.onnotificationclick(msg);
         }, function() {
-            if (_this.onalert)
-                _this.onalert(msg)
-            if (fromNotificationClick && _this.onnotificationclick)
+            /**
+                Fire twice ?!?!?!
+            */
+            // if (_this.onalert)
+            //     _this.onalert(msg)
+            // if (fromNotificationClick && _this.onnotificationclick)
+            //     _this.onnotificationclick(msg);
+            if( fromNotificationClick && _this.onnotificationclick ){
                 _this.onnotificationclick(msg);
+            }else if (_this.onalert) {
+                _this.onalert(msg)
+            }
         });
     },
 
@@ -493,7 +501,7 @@ var Boxcar = {
                 window.plugins.pushNotification.setApplicationIconBadgeNumber(function(){}, function(){}, msg.badge);
         }catch(ex){console.info("EX ", ex)}
 
-        Boxcar._gotMessage(msg, !data.foreground);
+        Boxcar._gotMessage(msg, !Number(data.foreground));
     }
 };
 
