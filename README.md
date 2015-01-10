@@ -79,7 +79,8 @@ Arguments:
 * `clientKey` (required) - Key used to access service,
 * `secret` - (required) - Secret value needed to access service
 * `server` - (required) - Url of push bridge server
-* `androidSenderID` - (required, android only) - Google project id used to register for push notification
+* `androidSenderID` - (required, android only) - Project number
+  assigned to your application in Google Developers Console
 * `richUrlBase` - (required) - Url of server where html content of received pushes are available
 
 ## `Boxcar.registerDevice()`
