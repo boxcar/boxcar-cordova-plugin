@@ -6,27 +6,28 @@
 
     <name>BoxcarPlugin</name>
 	<author>Pawel Chmielowski</author>
-	
+
 	<description>
 		Boxcar push platfrom access plugin for Android and iOS.
 	</description>
 
 	<license>MIT</license>
-	
+
 	<js-module src="Boxcar.js" name="Boxcar">
 		<clobbers target="Boxcar" />
 	</js-module>
 
 	<engines>
 		<engine name="cordova" version=">=3.1.0" />
-	</engines>	
-	
+	</engines>
+
 	<!-- android -->
 	<platform name="android">
 		<config-file target="res/xml/config.xml" parent="/*">
 			<plugin name="Storage" value="org.apache.cordova.Storage"/>
 		</config-file>
 	</platform>
-	<dependency id="org.apache.cordova.device" url="git://git.apache.org/cordova-plugin-device.git" commit="master"/>
+
+
 	<dependency id="com.phonegap.plugins.PushPlugin" url="https://github.com/boxcar/PushPlugin" commit="master"/>
 </plugin>
