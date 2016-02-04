@@ -7,7 +7,7 @@ var Boxcar = {
      * @param data.server
      */
     init: function(data) {
-        var verifyTo = {clientKey: 0, secret: 0, server: 0, richUrlBase:0};
+        var verifyTo = {clientKey: 0, secret: 0, server: 0, richUrlBase:0, icon: 0, iconColor: 0};
         if (device.platform == 'android' || device.platform == 'Android')
             verifyTo.androidSenderID = 0;
 
@@ -18,6 +18,8 @@ var Boxcar = {
         this.secret = data.secret;
         this.androidSenderID = data.androidSenderID;
         this.richUrlBase = data.richUrlBase.replace(/\/$/, "");
+        this.icon = data.icon;
+        this.iconColor = data.iconColor;
 
         this.initDb();
     },
@@ -29,7 +31,7 @@ var Boxcar = {
         try {
             this.db = window.openDatabase("Boxcar", "", "Boxcar db", 1000000);
             if (this.db.version == "1.0" || !this.db.version) {
-                this.db.changeVersion(this.db.version, "1.2", function (tx) {
+                this.db.changeVersion(this.db.version, "1.3", function (tx) {
                     tx.executeSql("CREATE TABLE IF NOT EXISTS pushes (" +
                                       "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," +
                                       "time INTEGER NOT NULL," +
@@ -42,18 +44,28 @@ var Boxcar = {
                                       "extras STRING"+
                                       ");");
                     tx.executeSql("CREATE INDEX pushes_on_time ON pushes (time);");
+                    tx.executeSql("CREATE TABLE IF NOT EXISTS settings (id STRING NOT NULL PRIMARY KEY, val STRING NOT NULL);");
                 }, function (a) {
-                    console.info(a)
+                    console.info(a);
                 }, function (a) {
-                    console.info(a)
+                    console.info(a);
+                });
+            } else if (this.db.version == "1.2") {
+                this.db.changeVersion(this.db.version, "1.3", function (tx) {
+                    tx.executeSql("ALTER TABLE pushes ADD COLUMN extras STRING;");
+                    tx.executeSql("CREATE TABLE IF NOT EXISTS settings (id STRING NOT NULL PRIMARY KEY, val STRING NOT NULL);");
+                }, function (a) {
+                    console.info(a);
+                }, function (a) {
+                    console.info(a);
                 });
             } else if (this.db.version == "1.1") {
                 this.db.changeVersion(this.db.version, "1.2", function (tx) {
                     tx.executeSql("ALTER TABLE pushes ADD COLUMN extras STRING;");
                 }, function (a) {
-                    console.info(a)
+                    console.info(a);
                 }, function (a) {
-                    console.info(a)
+                    console.info(a);
                 });
 
             }
@@ -72,15 +84,22 @@ var Boxcar = {
         this.onalert = data.onalert;
         this.onnotificationclick = data.onnotificationclick;
 
-        if (device.platform == 'android' || device.platform == 'Android')
-            window.plugins.pushNotification.register(this._PNRegSuccess, this._PNRegError,
-                                                     {senderID: this.androidSenderID, ecb:"Boxcar.GCM_Listener",
-                                                      messageField: "aps-alert", msgcntField: "aps-badge",
-                                                      deliverAllPushes: true});
-        else
-            window.plugins.pushNotification.register(function(arg){Boxcar._PNRegDone(arg)}, this._PNRegError,
-                                                     {"badge":"true", "sound":"true", "alert":"true",
-                                                      "ecb":"Boxcar.APN_Listener"});
+        this._push = PushNotification.init({
+            android: {
+                senderID: this.androidSenderID,
+                icon: this.icon,
+                iconColor: this.iconColor
+            },
+            ios: {
+                alert: "true",
+                badge: "true",
+                sound: "true"
+            }
+        });
+
+        this._push.on("registration", this._PNRegSuccess.bind(this));
+        this._push.on("error", this._PNRegError.bind(this));
+        this._push.on("notification", this._Notification.bind(this));
     },
 
     unregisterDevice: function(data) {
@@ -92,7 +111,7 @@ var Boxcar = {
         this._sendRequest("DELETE", "/api/device_tokens/"+this.regid,
                           {},
                           function() {
-                              window.plugins.pushNotification.unregister(data.onsuccess, data.onerror);
+                              this._push.unregister(data.onsuccess, data.onerror);
                           },
                           data.onerror);
         this.regid = null;
@@ -132,7 +151,7 @@ var Boxcar = {
                                  url: results.rows.item(i).url,
                                  seen: results.rows.item(i).flags == 1,
                                  extras : results.rows.item(i).extras ? JSON.parse(results.rows.item(i).extras) : {}
-                             })
+                    });
                 }
                 data.onsuccess(res);
             });
@@ -192,6 +211,30 @@ var Boxcar = {
                           data.onerror);
     },
 
+    _setSetting: function(id, val) {
+        this.db.transaction(function(tx) {
+            if (val == null)
+                tx.executeSql("DELETE FROM settings WHERE id = ?",
+                              [id]);
+            else
+                tx.executeSql("INSERT OR REPLACE INTO settings (id, val) VALUES (?, ?)",
+                              [id, val]);
+        });
+    },
+
+    _getSetting: function(id, defVal, callback) {
+        this.db.transaction(function(tx) {
+            tx.executeSql("SELECT val FROM settings WHERE id = ?", [id], function (tx, results) {
+                if (results.rows.length > 0)
+                    callback(results.rows.item(0).val);
+                else
+                    callback(defVal);
+            }, function () {
+                callback(defVal);
+            });
+        });
+    },
+
     _verifyArgs: function(args, names, defaults) {
         if (!args)
             throw new Error("Invalid Argument");
@@ -213,16 +256,8 @@ var Boxcar = {
         return null;
     },
 
-    _PNRegSuccess: function() {
-        console.info("ServiceOp success")
-    },
-
-    _PNRegError: function(arg) {
-        console.info("ServiceOp failed", arg)
-    },
-
-    _PNRegDone: function(regid) {
-        this.regid = regid;
+    _PNRegSuccess: function(data) {
+        this.regid = data.registrationId;
 
         var fields = {mode: this._rdData.mode};
 
@@ -238,10 +273,14 @@ var Boxcar = {
         fields.os_version = device.version;
         fields.name = device.model;
 
-        this._sendRequest("PUT", "/api/device_tokens/"+regid,
+        this._sendRequest("PUT", "/api/device_tokens/"+this.regid,
                           fields,
                           this._rdData.onsuccess,
                           this._rdData.onerror);
+    },
+
+    _PNRegError: function(data) {
+        console.info("ServiceOp failed: "+data.message);
     },
 
     _sendRequest: function(method, url, data, success, error, expires) {
@@ -270,7 +309,7 @@ var Boxcar = {
         var signature = this.crypto.sha1_hmac(this.secret, signData);
 
         console.info("Sending to "+this.server+url+"?clientkey="+this.clientKey+"&signature="+signature+
-        " data: "+dataStr+ " signData: "+signData)
+                     " data: "+dataStr+ " signData: "+signData);
 
         var req = new XMLHttpRequest();
         req.open(method, this.server+url+"?clientkey="+this.clientKey+"&signature="+signature);
@@ -283,7 +322,7 @@ var Boxcar = {
                 else
                     error(req.status, req.responseText);
             }
-        }
+        };
         req.send(dataStr);
     },
 
@@ -291,14 +330,16 @@ var Boxcar = {
         var _this = this;
         msg.seen = false;
         this.db.transaction(function(tx) {
-            tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags, extras) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                          [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url, 0, msg.extras ? JSON.stringify(msg.extras) : null]);
+            tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags, extras) "+
+                          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                          [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url,
+                           0, msg.extras ? JSON.stringify(msg.extras) : null]);
         }, function() {
             if (fromNotificationClick && _this.onnotificationclick)
                 _this.onnotificationclick(msg);
         }, function() {
             if (_this.onalert)
-                _this.onalert(msg)
+                _this.onalert(msg);
             if (fromNotificationClick && _this.onnotificationclick)
                 _this.onnotificationclick(msg);
         });
@@ -325,9 +366,9 @@ var Boxcar = {
 
             for (var i = 0; i < data.length; i++) {
                 ret+= hexchars.charAt((data[i]>>28)&0xf)+hexchars.charAt((data[i]>>24)&0xf)+
-                      hexchars.charAt((data[i]>>20)&0xf)+hexchars.charAt((data[i]>>16)&0xf)+
-                      hexchars.charAt((data[i]>>12)&0xf)+hexchars.charAt((data[i]>>8)&0xf)+
-                      hexchars.charAt((data[i]>>4)&0xf)+hexchars.charAt(data[i]&0xf)
+                    hexchars.charAt((data[i]>>20)&0xf)+hexchars.charAt((data[i]>>16)&0xf)+
+                    hexchars.charAt((data[i]>>12)&0xf)+hexchars.charAt((data[i]>>8)&0xf)+
+                    hexchars.charAt((data[i]>>4)&0xf)+hexchars.charAt(data[i]&0xf);
             }
             return ret;
         },
@@ -417,83 +458,37 @@ var Boxcar = {
         }
     },
 
-    GCM_Listener: function(data) {
-        console.log("GCM_Listener",data);
+    _Notification: function(data) {
+        console.log("Notification",data);
 
         var known_fields =  {
-            "aps-sound": 1,
-            "aps-badge": 1,
-            "aps-alert": 1,
             "i": 1,
+            "notId": 1,
             "f": 1,
             "u": 1,
             "foreground": 1,
             "priority": 1
         };
 
-        switch (data.event) {
-            case "registered":
-                Boxcar._PNRegDone(data.regid);
-                break;
-            case "message":
-                var extras = {};
-                for (var p in data.payload) {
-                    if (!(p in known_fields))
-                        extras[p] = data.payload[p];
-                }
-                var msg = {
-                    id: data.payload["i"],
-                    time: Date.now(),
-                    sound: data.payload["aps-sound"],
-                    badge: parseInt(data.payload["aps-badge"]) || 0,
-                    body: data.payload["aps-alert"],
-                    richPush: data.payload["f"] == "1",
-                    url: data.payload["f"] == "1" ?
-                         this.richUrlBase+"/push-"+data.payload["i"]+".html" :
-                         data.payload["u"],
-                    extras : extras
-                };
-                Boxcar._gotMessage(msg, data.notificationclick);
-                break;
+        var extras = {};
+
+        for (var p in data.additionalData) {
+            if (!(p in known_fields))
+                extras[p] = data.additionalData[p];
         }
-    },
-
-    APN_Listener: function(data) {
-        console.log("APN_Listener",data);
-        var known_fields =  {
-            "sound": 1,
-            "badge": 1,
-            "alert": 1,
-            "i": 1,
-            "f": 1,
-            "u": 1,
-            "foreground": 1,
-            "priority": 1
+        var msg = {
+            id: data.additionalData.notId,
+            time: Date.now(),
+            sound: data.sound,
+            badge: parseInt(data.count) || 0,
+            body: data.message,
+            richPush: data.additionalData.f == "1",
+            url: data.additionalData.f == "1" ?
+                this.richUrlBase+"/push-"+data.additionalData.notId+".html" :
+                data.additionalData.u,
+            extras : extras
         };
-        try{
-            var extras = {};
-            for (var p in data) {
-                if (!(p in known_fields))
-                    extras[p] = data[p];
-            }
-            var msg = {
-                id: data.i,
-                time: Date.now(),
-                sound: data.sound,
-                badge: parseInt(data.badge) || 0,
-                body: data.alert,
-                richPush: data.f == "1",
-                url: data.f == "1" ?
-                     Boxcar.richUrlBase+"/push-"+data.i+".html" :
-                     data.u,
-                extras: extras
-            };
-
-            if (msg.badge)
-                window.plugins.pushNotification.setApplicationIconBadgeNumber(function(){}, function(){}, msg.badge);
-        }catch(ex){console.info("EX ", ex)}
-
-        Boxcar._gotMessage(msg, !data.foreground);
+        Boxcar._gotMessage(msg, data.notificationclick);
     }
 };
 
