@@ -37,19 +37,8 @@ Next we need to declare for what platforms we want build our application:
     cordova platform add android
     cordova platform add ios
 
-Then we need to download plugins required by Boxcar SDK
-    cordova plugin add org.apache.cordova.device
-    cordova plugin add https://github.com/boxcar/PushPlugin
-
-On android Storage API used by SDK needs to be enabled manaully in one of config files.
-To do that XML file `platform/android/res/xml/config.xml` must have additional clause
-    <plugin name="Storage" value="org.apache.cordova.Storage" />
-directly in `<widget>` element.
-
-After that we need put our program files together with `Boxcar.js` file in www/ directory.
-We also need to include `Boxcar.js` and `PushNotification.js` file in our `index.html` file.
-    <script type="text/javascript" charset="utf-8" src="PushNotification.js"></script>
-    <script type="text/javascript" charset="utf-8" src="Boxcar.js"></script>
+Then we need to download plugin containing Boxcar SDK and it's dependences
+    cordova plugin add https://github.com/boxcar/boxcar-corova-plugin
 
 Packages for iOS platform can be only build with Xcode IDE, executing
     cordova prepare ios
@@ -82,6 +71,9 @@ Arguments:
 * `androidSenderID` - (required, android only) - Project number
   assigned to your application in Google Developers Console
 * `richUrlBase` - (required) - Url of server where html content of received pushes are available
+* `icon` - (optional, android only) - ID of android resource placed in `res/drawable/` with icon that can be used
+  to display in your notifications
+* `iconColor` - (optional, android only) - Color of notification icon background specified as `#RRGGBB`
 
 ## `Boxcar.registerDevice()`
 
