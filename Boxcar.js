@@ -73,12 +73,31 @@ var Boxcar = {
         }
     },
 
+    _eqObjects: function(obj1, obj2, keys) {
+        for (var i = 0; i < keys.length; i++)
+            if (obj1[keys[i]] != obj2[keys[i]])
+                return false;
+        return true;
+    },
+
     registerDevice: function(data) {
         var verifyArgs = {mode: 0, onsuccess: 0, onerror: 0};
         if (!data.onalert && !data.onnotificationclick)
             verifyArgs.onalert = 0;
 
         this._verifyArgs(data, verifyArgs);
+
+        if (this._rdData) {
+            if (this._eqObjects(this._rdData, data, "tags udid alias appVersion".split(" "))) {
+                if (this.regid)
+                    data.onsuccess({ok:"Success", subscribed_to: data.tags});
+                return;
+            }
+            this._rdData = data;
+            if (this.regid)
+                this._PNRegSuccess({registrationId: this.regid}, true);
+            return;
+        }
 
         this._rdData = data;
         this.onalert = data.onalert;
@@ -105,15 +124,22 @@ var Boxcar = {
     unregisterDevice: function(data) {
         this._verifyArgs(data, {onsuccess: 0, onerror: 0});
 
+        this._rdData = null;
+
         if (!this.regid)
             data.onsuccess();
 
-        this._sendRequest("DELETE", "/api/device_tokens/"+this.regid,
-                          {},
-                          function() {
-                              this._push.unregister(data.onsuccess, data.onerror);
-                          },
-                          data.onerror);
+        var _this = this;
+        var regid = this.regid;
+
+        this._push.unregister(function() {
+            _this._sendRequest("DELETE", "/api/device_tokens/"+regid,
+                              {},
+                              data.onsuccess,
+                              data.onerror);
+        }, data.onerror);
+
+        this._setSetting("boxcar_reginfo", null);
         this.regid = null;
     },
 
@@ -218,17 +244,28 @@ var Boxcar = {
                               [id]);
             else
                 tx.executeSql("INSERT OR REPLACE INTO settings (id, val) VALUES (?, ?)",
-                              [id, val]);
+                              [id, JSON.stringify(val)]);
         });
     },
 
     _getSetting: function(id, defVal, callback) {
-        this.db.transaction(function(tx) {
+        this.db.readTransaction(function(tx) {
             tx.executeSql("SELECT val FROM settings WHERE id = ?", [id], function (tx, results) {
-                if (results.rows.length > 0)
-                    callback(results.rows.item(0).val);
-                else
+                try{
+                if (results.rows.length > 0) {
+                    var data;
+                    try {
+                        data = JSON.parse(results.rows.item(0).val);
+                    } catch(ex) {
+                        callback(defVal);
+                        return;
+                    }
+                    callback(data);
+                } else
                     callback(defVal);
+                }catch (ex) {
+                    console.info("Callback exception", ex);
+                }
             }, function () {
                 callback(defVal);
             });
@@ -256,31 +293,48 @@ var Boxcar = {
         return null;
     },
 
-    _PNRegSuccess: function(data) {
+    _PNRegSuccess: function(data, forceRegistration) {
         this.regid = data.registrationId;
+        var _this = this;
 
-        var fields = {mode: this._rdData.mode};
+        console.info("PNRegSucess", data);
 
-        if (this._rdData.tags)
-            fields.tags = this._rdData.tags;
-        if (this._rdData.udid)
-            fields.udid = this._rdData.udid;
-        if (this._rdData.alias)
-            fields.alias = this._rdData.alias;
-        if (this._rdData.appVersion)
-            fields.app_version = this._rdData.appVersion;
+        this._getSetting("boxcar_reginfo", null, function(regInfo) {
+            if (!_this._rdData)
+                return;
+            if (forceRegistration || !regInfo ||
+                regInfo.regid != _this.regid ||
+                regInfo.time < Date.now()-24*60*60*1000)
+            {
+                var fields = {mode: _this._rdData.mode};
 
-        fields.os_version = device.version;
-        fields.name = device.model;
+                if (_this._rdData.tags)
+                    fields.tags = _this._rdData.tags;
+                if (_this._rdData.udid)
+                    fields.udid = _this._rdData.udid;
+                if (_this._rdData.alias)
+                    fields.alias = _this._rdData.alias;
+                if (_this._rdData.appVersion)
+                    fields.app_version = _this._rdData.appVersion;
 
-        this._sendRequest("PUT", "/api/device_tokens/"+this.regid,
-                          fields,
-                          this._rdData.onsuccess,
-                          this._rdData.onerror);
+                fields.os_version = device.version;
+                fields.name = device.model;
+
+                _this._sendRequest("PUT", "/api/device_tokens/"+_this.regid,
+                                   fields,
+                                   _this._rdData.onsuccess,
+                                   _this._rdData.onerror);
+                _this._setSetting("boxcar_reginfo", {regid: _this.regid, time: Date.now()});
+            } else
+                _this._rdData.onsuccess({ok:"Success", subscribed_to: _this._rdData.tags});
+        });
     },
 
     _PNRegError: function(data) {
         console.info("ServiceOp failed: "+data.message);
+
+        this._rdData.onerror();
+        this._rdData = null;
     },
 
     _sendRequest: function(method, url, data, success, error, expires) {
