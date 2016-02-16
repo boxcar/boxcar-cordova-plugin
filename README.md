@@ -10,7 +10,7 @@ asynchronously, by executing callback functions passed as arguments to API calls
 Arguments to all API calls can have `ios: {...}` or `android: {...}` sections, values
 specified that way would overwrite general data from adequate platform section.
 
-# Application live cycle
+# Application life cycle
 
 Before any other operation can be performed, Boxcar API must be
 initialized, this is performed by calling `Boxcar.init()`.
@@ -18,9 +18,9 @@ initialized, this is performed by calling `Boxcar.init()`.
 After that application can register retrieve list of tags by using `Boxcar.getTags()`
 or skip that step if interesting tags are already known.
 
-To make device receive push notificaitons `Boxcar.registerDevice()` must be called, after
-that all new notificaitons are delivered to applications by executing `onalert` callback
-provided in that API call
+To make device receive push notifications `Boxcar.registerDevice()` must be called, after
+that all new notifications are delivered to applications by executing `onalert` callback
+provided in that API call.
 
 # Starting new project using API
 
@@ -28,32 +28,56 @@ Make sure that on machine where build will be performed [Apache Cordova][http://
 Android or/and IOS SDK installed.
 
 As first step, we need to create new cordova project using:
-    cordova create /path/to/our-project our.domain.testapp1 "Test Applicaton"
+
+~~~ bash
+cordova create /path/to/our-project our.domain.testapp1 "Test Application"
+~~~
 
 After that we need to switch to app directory:
-    cd /path/to/our-project
 
-Next we need to declare for what platforms we want build our application:
-    cordova platform add android
-    cordova platform add ios
+~~~ bash
+cd /path/to/our-project
+~~~
 
-Then we need to download plugin containing Boxcar SDK and it's dependences
-    cordova plugin add https://github.com/boxcar/boxcar-corova-plugin
+Next, we need to declare for what platforms we want build our application:
 
-Packages for iOS platform can be only build with Xcode IDE, executing
-    cordova prepare ios
+~~~ bash
+cordova platform add android
+cordova platform add ios
+~~~
+
+Then we need to download plugin containing Boxcar SDK and it's dependencies
+
+~~~ bash
+cordova plugin add https://github.com/boxcar/boxcar-cordova-plugin
+~~~
+
+Packages for iOS platform can be only build with Xcode IDE, executing:
+
+~~~ bash
+cordova prepare ios
+~~~
 
 will fill `platform/ios` directory which can be opened in Xcode.
 
 Developing for Android can also be done using IDE environment, first by preparing build directory:
-     cordova prepare android
+
+~~~ bash
+cordova prepare android
+~~~
 
 and then creating IDE project from `platfrom/android` directory, but this can also be performed from
 CLI by executing
-    cordova build android
+
+~~~ bash
+cordova build android
+~~~
 
 to build APK file, and calling
-    cordova run android
+
+~~~ bash
+cordova run android
+~~~
 
 to install and start application on Android device.
 
@@ -83,16 +107,16 @@ Arguments:
 
 * `mode` (required) - String with "production" or "development" telling push service if
 production or development delivery channel should be used to register this device
-* `onsuccess` (required) - Calback function called when device was successfully registered
+* `onsuccess` (required) - Callback function called when device was successfully registered
 in push service
 * `onerror` (required) - Callback function called when device registration was unsuccessful,
 it receives single String value is error description
 * `onalert` (required) - Callback function called when new push message was received, it receive object
-with properties initialized from notificaiton content
-* `onnotificationclick` (required) - Callback function called when user clicked on notification ui
+with properties initialized from notification content
+* `onnotificationclick` (required) - Callback function called when user clicked on notification UI
 generated from push. This event can be dispatched only for pushes received when app was in background,
 as for pushes received when app was active notification is not displayed. This function is called with
-single object argument with properties initialized from notificaiton content
+single object argument with properties initialized from notification content
 * `tags` - List of strings with tags used to filter which notifications should be delivered
 * `udid` - Unique identifier of device where application is run
 * `alias` - Friendly name of device where application is run
@@ -101,9 +125,9 @@ single object argument with properties initialized from notificaiton content
 Objects passed to `onalert` and `onnotificationclick` callbacks have those fields:
 
 * `id` - unique identifier of push notification
-* `time` - time in miliseconds since epoch of when this message was received, this value can be
+* `time` - time in milliseconds since epoch of when this message was received, this value can be
 converted to Date object by calling `new Date(msg.time)`
-* `sound` - string identifer of sound which should be played with notification
+* `sound` - string identifier of sound which should be played with notification
 * `badge` - number of unread messages on server
 * `body` - body of push notification
 * `richPush` - boolean value telling if this push includes html formated content
@@ -118,7 +142,7 @@ Unregister device from push notifications
 Arguments:
 
 * `onsuccess` (required) - Callback function called when operation was successfully completed
-* `onerror` (required) - Callback function, it's called when error happen, receivessingle String with error message
+* `onerror` (required) - Callback function, it's called when error happen, receives single String with error message
 
 ## `Boxcar.getTags()`
 
@@ -138,7 +162,7 @@ for further `Boxcar.getReceivedMessages()` to have `seen` attribute set to true
 Arguments:
 
 * `onsuccess` (required) - Callback function called when operation was successfully completed
-* `onerror` (required) - Callback function, it's called when error happen, receivessingle String with error message
+* `onerror` (required) - Callback function, it's called when error happen, receives single String with error message
 * `id` (required) - String identifier of push notification to mark as received
 
 ## `Boxcar.resetBadge()`
@@ -148,7 +172,7 @@ Reset count of notificaitons to zero
 Arguments:
 
 * `onsuccess` (required) - Callback function called when operation was successfully completed
-* `onerror` (required) - Callback function, it's called when error happen, receivessingle String with error message
+* `onerror` (required) - Callback function, it's called when error happen, receives single String with error message
 
 ## `Boxcar.getReceivedMessages()`
 
