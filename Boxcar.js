@@ -322,9 +322,11 @@ var Boxcar = {
 
                 _this._sendRequest("PUT", "/api/device_tokens/"+_this.regid,
                                    fields,
-                                   _this._rdData.onsuccess,
+                                   function(data) {
+                                       _this._setSetting("boxcar_reginfo", {regid: _this.regid, time: Date.now()});
+                                       _this._rdData.onsuccess(data)
+                                   },
                                    _this._rdData.onerror);
-                _this._setSetting("boxcar_reginfo", {regid: _this.regid, time: Date.now()});
             } else
                 _this._rdData.onsuccess({ok:"Success", subscribed_to: _this._rdData.tags});
         });
