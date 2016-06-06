@@ -7,7 +7,7 @@ var Boxcar = {
      * @param data.server
      */
     init: function(data) {
-        var verifyTo = {clientKey: 0, secret: 0, server: 0, richUrlBase:0, icon: 0, iconColor: 0};
+        var verifyTo = {clientKey: 0, secret: 0, server: 0, richUrlBase:0};
         if (device.platform == 'android' || device.platform == 'Android')
             verifyTo.androidSenderID = 0;
 
@@ -285,7 +285,7 @@ var Boxcar = {
 
         for (var i in names)
             if (!(i in args))
-                throw new Error("Invalid Argument - "+i);
+                throw new Error("Missing Argument - "+i);
         if (defaults)
             for (i in defaults)
                 if (!(i in args))
