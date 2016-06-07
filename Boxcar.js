@@ -302,28 +302,38 @@ var Boxcar = {
         this._getSetting("boxcar_reginfo", null, function(regInfo) {
             if (!_this._rdData)
                 return;
+
+            var fields = {mode: _this._rdData.mode};
+
+            if (_this._rdData.tags)
+                fields.tags = _this._rdData.tags;
+            if (_this._rdData.udid)
+                fields.udid = _this._rdData.udid;
+            if (_this._rdData.alias)
+                fields.alias = _this._rdData.alias;
+            if (_this._rdData.appVersion)
+                fields.app_version = _this._rdData.appVersion;
+
+            fields.os_version = device.version;
+            fields.name = device.model;
+
+            var keys = [];
+            for (var i in fields) {
+                var val = i == "tags" ? fields[i].sort().join(" ") : fields[i];
+                keys.push(i+":"+val);
+            }
+
+            var hash = _this.crypto.sha1(keys.sort().join("\n"));
+
             if (forceRegistration || !regInfo ||
                 regInfo.regid != _this.regid ||
+                regInfo.hash != hash ||
                 regInfo.time < Date.now()-24*60*60*1000)
             {
-                var fields = {mode: _this._rdData.mode};
-
-                if (_this._rdData.tags)
-                    fields.tags = _this._rdData.tags;
-                if (_this._rdData.udid)
-                    fields.udid = _this._rdData.udid;
-                if (_this._rdData.alias)
-                    fields.alias = _this._rdData.alias;
-                if (_this._rdData.appVersion)
-                    fields.app_version = _this._rdData.appVersion;
-
-                fields.os_version = device.version;
-                fields.name = device.model;
-
                 _this._sendRequest("PUT", "/api/device_tokens/"+_this.regid,
                                    fields,
                                    function(data) {
-                                       _this._setSetting("boxcar_reginfo", {regid: _this.regid, time: Date.now()});
+                                       _this._setSetting("boxcar_reginfo", {regid: _this.regid, time: Date.now(), hash: hash});
                                        _this._rdData.onsuccess(data)
                                    },
                                    _this._rdData.onerror);
