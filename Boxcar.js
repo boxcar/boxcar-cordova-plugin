@@ -542,19 +542,20 @@ var Boxcar = {
             if (!(p in known_fields))
                 extras[p] = data.additionalData[p];
         }
+        var id = data.additionalData.notId || data.additionalData.i;
         var msg = {
-            id: data.additionalData.notId,
+            id: id,
             time: Date.now(),
             sound: data.sound,
             badge: parseInt(data.count) || 0,
             body: data.message,
             richPush: data.additionalData.f == "1",
             url: data.additionalData.f == "1" ?
-                this.richUrlBase+"/push-"+data.additionalData.notId+".html" :
+                this.richUrlBase+"/push-"+id+".html" :
                 data.additionalData.u,
             extras : extras
         };
-        Boxcar._gotMessage(msg, data.notificationclick);
+        Boxcar._gotMessage(msg, data.notificationclick || data.additionalData.foreground == false);
     }
 };
 
