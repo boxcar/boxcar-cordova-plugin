@@ -401,7 +401,7 @@ var Boxcar = {
         this.db.transaction(function(tx) {
             tx.executeSql("INSERT INTO pushes (id, time, body, badge, sound, richPush, url, flags, extras) "+
                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                          [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url,
+                          [+msg.id, msg.time, msg.body||"", msg.badge, msg.sound||"", msg.richPush, msg.url,
                            0, msg.extras ? JSON.stringify(msg.extras) : null]);
         }, function(err) {
             if (err.code != err.CONSTRAINT_ERR)
