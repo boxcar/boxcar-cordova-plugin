@@ -69,6 +69,9 @@ var Boxcar = {
                 });
 
             }
+            this.db.transaction(function(tx) {
+                tx.executeSql("DELETE FROM pushes WHERE id NOT IN (SELECT id FROM pushes ORDER BY time DESC LIMIT 100)");
+            })
         } catch (ex) {
         }
     },
@@ -400,7 +403,9 @@ var Boxcar = {
                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                           [+msg.id, msg.time, msg.body, msg.badge, msg.sound, msg.richPush, msg.url,
                            0, msg.extras ? JSON.stringify(msg.extras) : null]);
-        }, function() {
+        }, function(err) {
+            if (err.code != err.CONSTRAINT_ERR)
+                console.info("_gotMessage db error: ("+err.code+") "+err.message);
             if (fromNotificationClick && _this.onnotificationclick)
                 _this.onnotificationclick(msg);
         }, function() {
