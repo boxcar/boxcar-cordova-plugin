@@ -71,7 +71,7 @@ var Boxcar = {
             }
             this.db.transaction(function(tx) {
                 tx.executeSql("DELETE FROM pushes WHERE id NOT IN (SELECT id FROM pushes ORDER BY time DESC LIMIT 100)");
-            })
+            });
         } catch (ex) {
         }
     },
@@ -337,7 +337,7 @@ var Boxcar = {
                                    fields,
                                    function(data) {
                                        _this._setSetting("boxcar_reginfo", {regid: _this.regid, time: Date.now(), hash: hash});
-                                       _this._rdData.onsuccess(data)
+                                       _this._rdData.onsuccess(data);
                                    },
                                    _this._rdData.onerror);
             } else
