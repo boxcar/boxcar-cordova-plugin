@@ -91,7 +91,7 @@ var Boxcar = {
         this._verifyArgs(data, verifyArgs);
 
         if (this._rdData) {
-            if (this._eqObjects(this._rdData, data, "tags udid alias appVersion".split(" "))) {
+            if (this._eqObjects(this._rdData, data, "mode tags udid alias appVersion".split(" "))) {
                 if (this.regid)
                     data.onsuccess({ok:"Success", subscribed_to: data.tags});
                 return;
