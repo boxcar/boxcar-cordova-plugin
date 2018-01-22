@@ -20,7 +20,7 @@
     "cordova",
     "ecosystem:cordova",
     "cordova-ios",
-    "cordova-android",
+    "cordova-android"
   ],
   "cordova": {
     "id": "net.process-one.boxcar-phonegap",
