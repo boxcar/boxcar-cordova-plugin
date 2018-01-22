@@ -27,6 +27,6 @@
 			<plugin name="Storage" value="org.apache.cordova.Storage"/>
 		</config-file>
 	</platform>
-	<dependency id="cordova-plugin-device" url="git://git.apache.org/cordova-plugin-device.git" commit="master"/>
+	<dependency id="cordova-plugin-device"/>
 	<dependency id="phonegap-plugin-push" url="https://github.com/boxcar/phonegap-plugin-push" commit="master"/>
 </plugin>
