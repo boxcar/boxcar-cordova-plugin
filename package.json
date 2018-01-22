@@ -1,0 +1,38 @@
+{
+  "name": "boxcar-cordova-plugin",
+  "version": "1.0.0",
+  "description": "Cordova plugin for Boxcar",
+  "main": "index.js",
+  "author": "Paweł Chmielowski",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/boxcar/boxcar-cordova-plugin/issues"
+  },
+  "homepage": "https://github.com/boxcar/boxcar-cordova-plugin",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boxcar/boxcar-cordova-plugin.git"
+  },
+  "keywords": [
+    "cordova",
+    "ecosystem:cordova"
+    "cordova-ios",
+    "cordova-android",
+  ],
+  "cordova": {
+    "id": "net.process-one.boxcar-phonegap",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.1.0"
+    }
+  ]
+}
