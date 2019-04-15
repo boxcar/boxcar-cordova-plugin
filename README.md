@@ -60,6 +60,14 @@ cordova prepare ios
 
 will fill `platform/ios` directory which can be opened in Xcode.
 
+To build on Android you need to get google-service.json file for your project from Firebase Console,
+place it root directory of your cordova project and add folowing lines to config.xml of your Cordova
+project:
+
+   <platform name="android">
+     <resource-file src="google-services.json" target="app/google-services.json" />
+   </platform>
+
 Developing for Android can also be done using IDE environment, first by preparing build directory:
 
 ~~~ bash
@@ -92,8 +100,6 @@ Arguments:
 * `clientKey` (required) - Key used to access service,
 * `secret` - (required) - Secret value needed to access service
 * `server` - (required) - Url of push bridge server
-* `androidSenderID` - (required, android only) - Project number
-  assigned to your application in Google Developers Console
 * `richUrlBase` - (required) - Url of server where html content of received pushes are available
 * `icon` - (optional, android only) - ID of android resource placed in `res/drawable/` with icon that can be used
   to display in your notifications

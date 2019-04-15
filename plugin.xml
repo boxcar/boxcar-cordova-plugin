@@ -28,5 +28,5 @@
 		</config-file>
 	</platform>
 	<dependency id="cordova-plugin-device"/>
-	<dependency id="phonegap-plugin-push" url="https://github.com/boxcar/phonegap-plugin-push" commit="master"/>
+	<dependency id="phonegap-plugin-push" url="https://github.com/boxcar/phonegap-plugin-push#2.3.3+" commit="2.3.3+"/>
 </plugin>
